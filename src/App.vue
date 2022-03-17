@@ -1,5 +1,8 @@
 <template>
     <div class="container my-3 d-print-none">
+        <div class="alert alert-danger" v-if="error">
+            <p class="mb-0" v-if="error === ErrNoRestoreHeight">Restore height isn't known yet.</p>
+        </div>
         <div class="card">
             <div class="card-header">
                 xmr.gift: Monero gift cards generator
@@ -34,9 +37,15 @@
     export default {
         name: "App",
 
+        created() {
+            this.ErrNoRestoreHeight = "no restore height"
+        },
+
         data() {
             return {
+                error: "",
                 template: "",
+                restoreHeight: 0,
                 wallets: [],
             }
         },
@@ -54,10 +63,16 @@
             generateCards(form) {
                 this.template = form.elements["template"].value
                 const n = parseInt(form.elements["cards"].value)
+                const restoreHeight = this.restoreHeight
                 const walletType = form.elements["wallet_type"].value
 
+                if (restoreHeight === 0) {
+                    this.error = this.ErrNoRestoreHeight
+                    return
+                }
+
                 if (walletType === "online") {
-                    this.generateWallets(n)
+                    this.generateWallets(n, restoreHeight)
                 } else {
                     this.generateMnemonics(n)
                 }
@@ -67,13 +82,14 @@
                 window.print()
             },
 
-            async generateWallets(n) {
+            async generateWallets(n, restoreHeight) {
                 this.wallets = []
                 let wallets = []
                 for (let i = 0; i < n; i++) {
                     const wallet = await this.newWallet()
                     const privateSpendKey = await wallet.getPrivateSpendKey()
-                    wallets.push("https://xmr.gift/wallet/#"+privateSpendKey)
+                    const uri = "https://xmr.gift/wallet/?h="+restoreHeight+"#"+privateSpendKey
+                    wallets.push(uri)
                 }
                 this.wallets = wallets
             },
@@ -88,6 +104,21 @@
                 }
                 this.wallets = wallets
             },
+        },
+
+        async mounted() {
+            const wallet = await monerojs.connectToDaemonRpc({
+                uri: "https://node.xmr.gift",
+                pollInterval: 10000,
+            })
+            this.restoreHeight = await wallet.getHeight()
+
+            const that = this
+            await wallet.addListener(new class extends monerojs.MoneroDaemonListener {
+                onBlockHeader(header) {
+                    that.restoreHeight = header.getHeight()
+                }
+            })
         },
     }
 </script>
