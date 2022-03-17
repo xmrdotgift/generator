@@ -110,6 +110,7 @@
             const wallet = await monerojs.connectToDaemonRpc({
                 uri: "https://node.xmr.gift",
                 pollInterval: 10000,
+                proxyToWorker: false,
             })
             this.restoreHeight = await wallet.getHeight()
 
