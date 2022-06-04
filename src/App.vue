@@ -88,7 +88,7 @@
                 for (let i = 0; i < n; i++) {
                     const wallet = await this.newWallet()
                     const privateSpendKey = await wallet.getPrivateSpendKey()
-                    const uri = "https://xmr.gift/wallet/?h="+restoreHeight+"#"+privateSpendKey
+                    const uri = "https://xmr.gift/wallet/#s="+privateSpendKey+"&h="+restoreHeight
                     wallets.push(uri)
                 }
                 this.wallets = wallets
