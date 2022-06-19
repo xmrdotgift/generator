@@ -15,19 +15,33 @@
 
             <div class="mb-0 row">
                 <div class="col-6">
-                    <img :src="setFrontPreviewImage" class="border rounded w-100" alt="[template preview front]" title="Front side view">
+                    <img ref="templateFrontImage" :src="setFrontPreviewImage" class="border rounded w-100" alt="[template preview front]" title="Front side view">
                 </div>
                 <div class="col-6">
-                    <img :src="setBackPreviewImage" class="border rounded w-100" alt="[template preview back]" title="Back side view">
+                    <img ref="templateBackImage" :src="setBackPreviewImage" class="border rounded w-100" alt="[template preview back]" title="Back side view">
                 </div>
             </div>
         </div>
 
-        <div class="mb-3">
+        <input type="hidden" name="wallet_type" value="online">
+        <!--<div class="mb-3">
             <label for="wallet_type" class="form-label">Wallet type</label>
             <select id="wallet_type" name="wallet_type" class="form-control">
                 <option value="online">Non-custodial online wallet</option>
                 <option value="mnemonic">Mnemonic</option>
+            </select>
+        </div>-->
+
+        <div class="mb-3">
+            <label for="restore_height" class="form-label">Restore height</label>
+            <input type="number" id="restore_height" class="form-control" :value="restoreHeight" min="0" name="restore_height">
+        </div>
+
+        <div class="mb-3">
+            <label for="paper_format" class="form-label">Paper size</label>
+            <select id="paper_format" name="paper_format" class="form-control">
+                <option value="a4">A4</option>
+                <option value="letter">US Letter</option>
             </select>
         </div>
 
@@ -36,7 +50,7 @@
             <select id="cards" class="form-control" name="cards">
                 <option>8</option>
                 <option>16</option>
-                <option selected>32</option>
+                <option>32</option>
                 <option>48</option>
                 <option>64</option>
             </select>
@@ -44,36 +58,50 @@
 
         <div class="row mb-3">
             <div class="col-12">
-                <input type="button" class="btn btn-primary" @click="$emit('submit', $refs.form); submittedOnce = true" value="Generate">
-                &nbsp;
-                <input type="button" v-if="submittedOnce" class="btn btn-success" @click="$emit('print')" value="Print">
+                <input type="button" class="btn btn-primary" @click="submit" value="Generate PDF">
             </div>
         </div>
     </form>
 </template>
 
 <script>
+    import monerojs from "monero-javascript"
+
     export default {
         emits: [
             "submit",
-            "print",
         ],
+
+        methods: {
+            submit() {
+                this.$emit("submit", this.$refs.form, this.$refs.templateFrontImage, this.$refs.templateBackImage)
+            }
+        },
 
         computed: {
             setFrontPreviewImage() {
-                return "https://xmr.gift/templates/"+this.template+"/front.png"
+                return "https://xmr.gift/templates/" + this.template + "/front.png"
             },
 
             setBackPreviewImage() {
-                return "https://xmr.gift/templates/"+this.template+"/back.png"
+                return "https://xmr.gift/templates/" + this.template + "/back.png"
             }
         },
 
         data() {
             return {
-                submittedOnce: false,
                 template: "black",
+                restoreHeight: "0",
             }
+        },
+
+        async mounted() {
+            const wallet = await monerojs.connectToDaemonRpc({
+                uri: "https://node.xmr.gift",
+                pollInterval: 10000,
+                proxyToWorker: false,
+            })
+            this.restoreHeight = await wallet.getHeight()
         }
     }
 </script>

@@ -1,10 +1,9 @@
 import { createApp } from "vue"
 import App from "./App.vue"
+import "bootstrap/dist/css/bootstrap.min.css"
 
-import Card from "./components/Card.vue"
 import Form from "./components/Form.vue"
 
 const app = createApp(App)
-app.component("card", Card)
 app.component("settings-form", Form)
 app.mount("#app")

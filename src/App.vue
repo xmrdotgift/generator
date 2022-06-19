@@ -1,25 +1,11 @@
 <template>
-    <div class="container my-3 d-print-none">
-        <div class="alert alert-danger" v-if="error">
-            <p class="mb-0" v-if="error === ErrNoRestoreHeight">Restore height isn't known yet.</p>
-        </div>
+    <div class="container my-3">
         <div class="card">
             <div class="card-header">
-                xmr.gift: Monero gift cards generator
+                xmr.gift: Gift cards generator
             </div>
             <div class="card-body">
-                <settings-form @submit="generateCards" @print="printWindow"></settings-form>
-            </div>
-        </div>
-    </div>
-
-    <div v-for="page in parseInt((wallets.length*2) / 8)" class="container-fluid">
-        <div class="row">
-            <div v-if="(page-1) % 2 === 0" v-for="i in 8" class="col-6 p-3 text-center">
-                <card side="front" rounded="true" :template="template"></card>
-            </div>
-            <div v-if="(page-1) % 2 !== 0" v-for="i in 8" class="col-6 p-3 text-center">
-                <card side="back" rounded="true" :template="template" :text="wallets[((i-1) + parseInt(page/2) * 8) - 8]"></card>
+                <settings-form @submit="generateCards"></settings-form>
             </div>
         </div>
     </div>
@@ -33,19 +19,46 @@
 
 <script>
     import monerojs from "monero-javascript"
+    import base58 from "base58-monero"
+    import { jsPDF } from "jspdf"
+    import qrcode from "qrcode"
+    import grid from "./grid.js"
+
+    const cardWidth = 85.6
+    const cardHeight = 53.98
+
+    const qrSize = 34.4
+    const qrMargin = 2
+
+    const pageConfig = {
+        a4: {
+            grid: [
+                [{}, {}],
+                [{}, {}],
+                [{}, {}],
+                [{}, {}],
+            ],
+            margin: 12.5,
+        },
+        letter: {
+            grid: [
+                [{}, {}],
+                [{}, {}],
+                [{}, {}],
+                [{}, {}],
+            ],
+            margin: 14.5,
+        }
+    }
 
     export default {
         name: "App",
-
-        created() {
-            this.ErrNoRestoreHeight = "no restore height"
-        },
 
         data() {
             return {
                 error: "",
                 template: "",
-                restoreHeight: 0,
+                pageFormat: "",
                 wallets: [],
             }
         },
@@ -60,66 +73,101 @@
                 })
             },
 
-            generateCards(form) {
-                this.template = form.elements["template"].value
+            generateCards(form, frontImage, backImage) {
+                const template = form.elements["template"].value
+                const pageFormat = form.elements["paper_format"].value
+
                 const n = parseInt(form.elements["cards"].value)
-                const restoreHeight = this.restoreHeight
                 const walletType = form.elements["wallet_type"].value
 
-                if (restoreHeight === 0) {
-                    this.error = this.ErrNoRestoreHeight
-                    return
-                }
-
                 if (walletType === "online") {
-                    this.generateWallets(n, restoreHeight)
+                    const restoreHeight = form.elements["restore_height"].value
+
+                    this.generateWallets(template, frontImage, backImage, pageFormat, restoreHeight, n)
                 } else {
-                    this.generateMnemonics(n)
+                    this.generateMnemonics(template, pageFormat, n)
                 }
             },
 
-            printWindow() {
-                window.print()
-            },
-
-            async generateWallets(n, restoreHeight) {
-                this.wallets = []
+            async generateWallets(template, frontImage, backImage, pageFormat, restoreHeight, n) {
                 let wallets = []
                 for (let i = 0; i < n; i++) {
                     const wallet = await this.newWallet()
                     const privateSpendKey = await wallet.getPrivateSpendKey()
-                    const uri = "https://xmr.gift/wallet/#s="+privateSpendKey+"&h="+restoreHeight
+                    const privateSpendKeyB58 = base58.encode(Buffer.from(privateSpendKey, "hex"))
+                    const uri = "https://xmr.gift/wallet/#s="+privateSpendKeyB58+"&h="+restoreHeight
                     wallets.push(uri)
                 }
+                this.template = template
+                this.frontImage = frontImage
+                this.backImage = backImage
+                this.pageFormat = pageFormat
                 this.wallets = wallets
             },
 
-            async generateMnemonics(n) {
-                this.wallets = []
+            async generateMnemonics(template, pageFormat, n) {
                 let wallets = []
                 for (let i = 0; i < n; i++) {
                     const wallet = await this.newWallet()
                     const mnemonic = await wallet.getMnemonic()
                     wallets.push(mnemonic)
                 }
+                this.template = template
+                this.pageFormat = pageFormat
                 this.wallets = wallets
             },
         },
 
-        async mounted() {
-            const wallet = await monerojs.connectToDaemonRpc({
-                uri: "https://node.xmr.gift",
-                pollInterval: 10000,
-                proxyToWorker: false,
-            })
-            this.restoreHeight = await wallet.getHeight()
+        watch: {
+            async wallets(newWallets) {
+                const pdf = new jsPDF({
+                    format: this.pageFormat,
+                })
+                pdf.deletePage(1)
 
-            const that = this
-            await wallet.addListener(new class extends monerojs.MoneroDaemonListener {
-                onBlockHeader(header) {
-                    that.restoreHeight = header.getHeight()
+                const addCardGrid = async function(grid, pageFormat, image, margin, withQR) {
+                    pdf.addPage(pageFormat)
+
+                    for(let rowID in grid) {
+                        for(let colID in grid[rowID]) {
+                            let x = ((cardWidth + margin) * colID) + margin
+                            let y = ((cardHeight + margin) * rowID) + margin
+                            // TODO: optimize image loading - fetch each side exactly once!
+                            pdf.addImage(image, "PNG", x, y, cardWidth, cardHeight)
+
+                            if(withQR) {
+                                let qr = await qrcode.toDataURL(grid[rowID][colID], {
+                                    errorCorrectionLevel: 'L',
+                                    // width requires value in pixels. We upscale the value in mm by a factor.
+                                    width: qrSize*5,
+                                    margin: qrMargin,
+                                })
+                                pdf.addImage(qr, x+48, y+13, qrSize, qrSize)
+                            }
+                        }
+                    }
                 }
-            })
+
+                const cardMargin = pageConfig[this.pageFormat].margin
+                const gridTemplate = pageConfig[this.pageFormat].grid
+
+                const walletsTotal = newWallets.length
+                const cardsPerPage = grid.count(gridTemplate)
+
+                let pageGrids = []
+                for(let i = 0; i < walletsTotal; i += cardsPerPage) {
+                    let wallets = newWallets.slice(i, i+cardsPerPage)
+                    let pageGrid = grid.fromArray(gridTemplate, wallets)
+                    pageGrids.push(pageGrid)
+                }
+
+                for(let pageGrid of pageGrids) {
+                    await addCardGrid(pageGrid, this.pageFormat, this.frontImage, cardMargin, false)
+                    await addCardGrid(pageGrid, this.pageFormat, this.backImage, cardMargin, true)
+                }
+
+                pdf.save("gift-cards.pdf")
+            },
         },
     }
 </script>
