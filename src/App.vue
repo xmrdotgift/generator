@@ -79,13 +79,14 @@
 
                 const n = parseInt(form.elements["cards"].value)
                 const walletType = form.elements["wallet_type"].value
+                const restoreHeight = form.elements["restore_height"].value
 
                 if (walletType === "online") {
-                    const restoreHeight = form.elements["restore_height"].value
-
                     this.generateWallets(template, frontImage, backImage, pageFormat, restoreHeight, n)
-                } else {
-                    this.generateMnemonics(template, pageFormat, n)
+                } else if (walletType === "mnemonic") {
+                    this.generateMnemonics(template, frontImage, backImage, pageFormat, restoreHeight, n)
+                }else if (walletType === "monero_wallet") {
+                    this.generateWalletScheme(template, frontImage, backImage, pageFormat, restoreHeight, n)
                 }
             },
 
@@ -105,7 +106,7 @@
                 this.wallets = wallets
             },
 
-            async generateMnemonics(template, pageFormat, n) {
+            async generateMnemonics(template, frontImage, backImage, pageFormat, restoreHeight, n) {
                 let wallets = []
                 for (let i = 0; i < n; i++) {
                     const wallet = await this.newWallet()
@@ -113,6 +114,24 @@
                     wallets.push(mnemonic)
                 }
                 this.template = template
+                this.frontImage = frontImage
+                this.backImage = backImage
+                this.pageFormat = pageFormat
+                this.wallets = wallets
+            },
+
+            async generateWalletScheme(template, frontImage, backImage, pageFormat, restoreHeight, n) {
+                let wallets = []
+                for (let i = 0; i < n; i++) {
+                    const wallet = await this.newWallet()
+                    const mnemonic = await wallet.getMnemonic()
+                    const encoded_mnemonic = encodeURI(mnemonic)
+                    const uri = "monero_wallet:?seed=" + encoded_mnemonic + "&height=" + restoreHeight
+                    wallets.push(uri)
+                }
+                this.template = template
+                this.frontImage = frontImage
+                this.backImage = backImage
                 this.pageFormat = pageFormat
                 this.wallets = wallets
             },

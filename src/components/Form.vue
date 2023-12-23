@@ -23,14 +23,15 @@
             </div>
         </div>
 
-        <input type="hidden" name="wallet_type" value="online">
-        <!--<div class="mb-3">
+        <!--<input type="hidden" name="wallet_type" value="online">-->
+        <div class="mb-3">
             <label for="wallet_type" class="form-label">Wallet type</label>
             <select id="wallet_type" name="wallet_type" class="form-control">
                 <option value="online">Non-custodial online wallet</option>
-                <option value="mnemonic">Mnemonic</option>
+                <option value="mnemonic">Mnemonic (24word)</option>
+                <option value="monero_wallet">Wallet Uri Scheme (24word)</option>
             </select>
-        </div>-->
+        </div>
 
         <div class="mb-3">
             <label for="restore_height" class="form-label">Restore height</label>
