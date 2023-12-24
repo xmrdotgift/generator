@@ -42,6 +42,7 @@
             <label for="paper_format" class="form-label">Paper size</label>
             <select id="paper_format" name="paper_format" class="form-control">
                 <option value="a4">A4</option>
+                <option value="a4_compact">A4 - Compact</option>
                 <option value="letter">US Letter</option>
             </select>
         </div>
@@ -54,6 +55,14 @@
                 <option>32</option>
                 <option>48</option>
                 <option>64</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="cutting_guides" class="form-label">Cutting guides around the cards</label>
+            <select id="cutting_guides" name="cutting_guides" class="form-control">
+                <option value="dashed_line">Dashed Line</option>
+                <option value="none">None</option>
             </select>
         </div>
 
