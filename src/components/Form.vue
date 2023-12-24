@@ -23,14 +23,15 @@
             </div>
         </div>
 
-        <input type="hidden" name="wallet_type" value="online">
-        <!--<div class="mb-3">
+        <!--<input type="hidden" name="wallet_type" value="online">-->
+        <div class="mb-3">
             <label for="wallet_type" class="form-label">Wallet type</label>
             <select id="wallet_type" name="wallet_type" class="form-control">
                 <option value="online">Non-custodial online wallet</option>
-                <option value="mnemonic">Mnemonic</option>
+                <option value="mnemonic">Mnemonic (24word)</option>
+                <option value="monero_wallet">Wallet Uri Scheme (24word)</option>
             </select>
-        </div>-->
+        </div>
 
         <div class="mb-3">
             <label for="restore_height" class="form-label">Restore height</label>
@@ -41,6 +42,7 @@
             <label for="paper_format" class="form-label">Paper size</label>
             <select id="paper_format" name="paper_format" class="form-control">
                 <option value="a4">A4</option>
+                <option value="a4_compact">A4 - Compact</option>
                 <option value="letter">US Letter</option>
             </select>
         </div>
@@ -53,6 +55,14 @@
                 <option>32</option>
                 <option>48</option>
                 <option>64</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="cutting_guides" class="form-label">Cutting guides around the cards</label>
+            <select id="cutting_guides" name="cutting_guides" class="form-control">
+                <option value="dashed_line">Dashed Line</option>
+                <option value="none">None</option>
             </select>
         </div>
 
